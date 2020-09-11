@@ -12,7 +12,7 @@ Sub fieldToOmath()
     Dim strCmd As String, strCmdB As String, strText As String, strXL As String, strBrace As String, strFH As String
     
     strCmd = "\\([A-Za-z0-9])+"                     '命令
-    strCmdB = "\\[\(\)\{\}\[\]\|\*]"                '括号命令
+    strCmdB = "\\[\(\)\{\}\[\]\|\*\,]"              '括号命令
     strText = "[^\s\\ \(\)\{\}\[\]\|,]+"            '纯文本
     strXL = "[φπ]"                                '希腊
     strBrace = "\(|\)|\{|\}|\[|\]"                  '括号
@@ -60,14 +60,10 @@ End Function
 
 Function typeCMD(str As String)
     Dim cmd() As String
-    cmd = Split(str, " ")
     Selection.OMaths.Add Range:=Selection.Range
-    For i = 0 To UBound(cmd)
-        Selection.TypeText Text:=cmd(i)
-        Selection.TypeText Text:=" "
-    Next
+    Selection.TypeText Text:=str 'cmd(i)
     Selection.OMaths.BuildUp
-    Selection.MoveRight Unit:=wdCharacter, count:=2
+    Selection.MoveRight Unit:=wdCharacter, count:=1
 End Function
 
 
@@ -145,7 +141,83 @@ Function exeCMD(ByRef str As String, ByRef index As Long) As Boolean
 End Function
 
 Function cmdA(ByRef cmd As String, ByRef index As Long) As Boolean
+    Dim str As String
+    Dim mFlag As Boolean
+    Dim cmdFlag As Integer
+    Dim scr As String
+    Dim mat() As String
+    Dim count As Integer
+    Dim co As Integer
     
+    cmdFlag = 0
+    count = 0
+    cmd = ""
+    Do While cmdFlag <> 5
+        index = index + 1
+        str = getCMD(index, mFlag)
+        If mFlag = True Then
+        '''''''''参数为主命令，先执行
+            If exeCMD(str, index) = False Then
+                cmdA = False
+                Exit Function
+            End If
+        End If
+        
+        If cmdFlag = 0 Then
+            If str = "(" Then
+                If co = 0 Then co = 1
+                cmdFlag = 2
+            Else
+                If Left(UCase(str), 3) = "\CO" Then
+                    co = CInt(Mid(str, 4))
+                End If
+            End If
+        ElseIf cmdFlag = 2 Then
+            If str = "(" Then
+                count = count + 1
+                scr = scr + str
+            ElseIf str = ")" Then
+                If count > 0 Then
+                    scr = scr + str
+                    count = count - 1
+                Else
+                    cmdFlag = 5
+                End If
+            ElseIf str = "\(" Then
+                scr = scr + "("
+            ElseIf str = "\)" Then
+                scr = scr + ")"
+            ElseIf str = "\," Then
+                scr = scr + ","
+            ElseIf str = "," Then
+                scr = scr + Chr(0)
+            Else
+                scr = scr + str
+            End If
+        End If
+    Loop
+    mat = Split(scr, Chr(0))
+    For i = 0 To UBound(mat)
+        cmd = cmd + mat(i)
+        If (i + 1) Mod co = 0 Then
+            cmd = cmd + "@"
+        Else
+            cmd = cmd + "&"
+        End If
+    Next
+    j = i Mod co
+    If j = 0 Then
+        cmd = Left(cmd, Len(cmd) - 1)
+    Else
+        i = 0
+        j = co - j - 1
+        Do While i < j
+            cmd = cmd + "&"
+            i = i + 1
+        Loop
+    End If
+    cmd = "■(" + cmd + ")"
+    cmdA = True
 End Function
 
 Function cmdB(ByRef cmd As String, ByRef index As Long) As Boolean
@@ -290,6 +362,54 @@ Function cmdI(ByRef cmd As String, ByRef index As Long) As Boolean
 End Function
 
 Function cmdL(ByRef cmd As String, ByRef index As Long) As Boolean
+    Dim str As String
+    Dim mFlag As Boolean
+    Dim cmdFlag As Integer
+    Dim scr As String
+    Dim count As Integer
+    
+    cmdFlag = 0
+    count = 0
+    cmd = ""
+    Do While cmdFlag <> 5
+        index = index + 1
+        str = getCMD(index, mFlag)
+        If mFlag = True Then
+        '''''''''参数为主命令，先执行
+            If exeCMD(str, index) = False Then
+                cmdL = False
+                Exit Function
+            End If
+        End If
+        
+        If cmdFlag = 0 Then
+            If str = "(" Then
+                cmdFlag = 2
+            End If
+        ElseIf cmdFlag = 2 Then
+            If str = "(" Then
+                count = count + 1
+                scr = scr + str
+            ElseIf str = ")" Then
+                If count > 0 Then
+                    scr = scr + str
+                    count = count - 1
+                Else
+                    cmdFlag = 5
+                End If
+            ElseIf str = "\(" Then
+                scr = scr + "("
+            ElseIf str = "\)" Then
+                scr = scr + ")"
+            ElseIf str = "\," Then
+                scr = scr + ","
+            Else
+                scr = scr + str
+            End If
+        End If
+    Loop
+    cmd = scr '"〖" + scr + "〗"
+    cmdL = True
     
 End Function
 
