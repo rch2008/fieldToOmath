@@ -12,10 +12,10 @@ Sub fieldToOmath()
     Dim strCmd As String, strCmdB As String, strText As String, strXL As String, strBrace As String, strFH As String
     
     strCmd = "\\([A-Za-z0-9])+"                     'ÃüÁî
-    strCmdB = "\\[\(\)\{\}\[\]\|\*\,]"              'À¨ºÅÃüÁî
+    strCmdB = "\\[\(\)\{\}\[\]\|\*\,\|]"            'À¨ºÅÃüÁî
     strText = "[^\s\\ \(\)\{\}\[\]\|,]+"            '´¿ÎÄ±¾
     strXL = "[¦Õ¦Ð]"                                'Ï£À°
-    strBrace = "\(|\)|\{|\}|\[|\]"                  'À¨ºÅ
+    strBrace = "\(|\)|\{|\}|\[|\]|\|"                'À¨ºÅ
     strFH = ","                                     '¶ººÅ
     
     Set re = New RegExp
@@ -42,6 +42,7 @@ Sub fieldToOmath()
         End If
 nextField:
     Next
+    allChangeToVec
 End Sub
 
 Function getCMD(ByVal index As Long, ByRef mFlag As Boolean) As String
@@ -63,7 +64,7 @@ Function typeCMD(str As String)
     Selection.OMaths.Add Range:=Selection.Range
     Selection.TypeText Text:=str 'cmd(i)
     Selection.OMaths.BuildUp
-    Selection.MoveRight Unit:=wdCharacter, count:=1
+    Selection.MoveRight unit:=wdCharacter, count:=1
 End Function
 
 
@@ -353,7 +354,7 @@ Function cmdF(ByRef cmd As String, ByRef index As Long) As Boolean
             End If
         End If
     Loop
-    cmd = cmd + "¡¼" + num + "/" + den + "¡½ "
+    cmd = cmd + "(" + num + ")/(" + den + ")"
     cmdF = True
 End Function
 
@@ -414,7 +415,70 @@ Function cmdL(ByRef cmd As String, ByRef index As Long) As Boolean
 End Function
 
 Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
+    Dim str As String
+    Dim mFlag As Boolean
+    Dim cmdFlag As Integer
+    Dim scr As String
+    Dim mat() As String
+    Dim count As Integer
     
+    cmdFlag = 0
+    count = 0
+    cmd = ""
+    Do While cmdFlag <> 5
+        index = index + 1
+        str = getCMD(index, mFlag)
+        If mFlag = True Then
+        '''''''''²ÎÊýÎªÖ÷ÃüÁî£¬ÏÈÖ´ÐÐ
+            If exeCMD(str, index) = False Then
+                cmdO = False
+                Exit Function
+            End If
+        End If
+        
+        If cmdFlag = 0 Then
+            If str = "(" Then
+                cmdFlag = 2
+            End If
+        ElseIf cmdFlag = 2 Then
+            If str = "(" Then
+                count = count + 1
+                scr = scr + str
+            ElseIf str = ")" Then
+                If count > 0 Then
+                    scr = scr + str
+                    count = count - 1
+                Else
+                    cmdFlag = 5
+                End If
+            ElseIf str = "\(" Then
+                scr = scr + "("
+            ElseIf str = "\)" Then
+                scr = scr + ")"
+            ElseIf str = "\," Then
+                scr = scr + ","
+            ElseIf str = "," Then
+                scr = scr + Chr(0)
+            Else
+                scr = scr + str
+            End If
+        End If
+    Loop
+    mat = Split(scr, Chr(0))
+    If UBound(mat) = 1 Then
+        cmdO = True
+        If mat(0) = "¡ú" Then
+            cmd = "¨d" + mat(1) + "¨g"
+        ElseIf mat(1) = "¡ú" Then
+            cmd = "¨d" + mat(0) + "¨g"
+        ElseIf (Mid(mat(0), 2, 1) = "_" And Mid(mat(1), 2, 1) = "^") Or (Mid(mat(0), 2, 1) = "^" And Mid(mat(1), 2, 1) = "_") Then
+            cmd = "¡¼ " + Mid(mat(0), 2, Len(mat(0)) - 2) + Mid(mat(1), 2, Len(mat(1)) - 2) + "¡½"
+        'ElseIf Mid(mat(0), 2, 1) = "^" And Mid(mat(1), 2, 1) = "_" Then
+        '    cmd = "¡¼" + Mid(mat(0), 2, Len(mat(0)) - 2) + Mid(mat(1), 2, Len(mat(1)) - 2) + "¡½"
+        Else
+            cmdO = False
+        End If
+    End If
 End Function
 
 Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
@@ -495,13 +559,13 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
                 ElseIf Left(str, 3) = "\DO" Then
                     cmd = "_"
                 End If
-                cmdFlag = 1
+                'cmdFlag = 1
             End If
-        ElseIf cmdFlag = 1 Then
-            If str = "(" Then
-                cmdFlag = 2
-            Else
-            End If
+        'ElseIf cmdFlag = 1 Then
+        '    If str = "(" Then
+        '        cmdFlag = 2
+        '    Else
+        '    End If
         ElseIf cmdFlag = 2 Then
             If str = "(" Then
                 count = count + 1
@@ -522,10 +586,55 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
             End If
         End If
     Loop
-    cmd = "¡¼" + cmd + scr + "¡½"
+    If scr = "¡ú" Then
+        cmd = scr
+    Else
+        cmd = "¡¼" + cmd + "¡¼" + scr + "¡½¡½"
+    End If
     cmdS = True
 End Function
 
 Function cmdX(ByRef cmd As String, ByRef index As Long) As Boolean
     
+End Function
+
+Function changeVec()
+    Dim objRange As Range
+    Dim objEq As OMath
+    Dim objOMathFunction As OMathFunction
+     
+    Set objRange = Selection.Range
+    Set objEq = objRange.OMaths(1)
+    Set objOMathFunction = objEq.Functions.Add(objRange, wdOMathFunctionAcc)
+    objOMathFunction.Acc.Char = 8407
+End Function
+Function allChangeToVec()
+'
+    Dim notend As Boolean
+    notend = True
+    Selection.HomeKey unit:=wdStory
+    'ÒÆ¶¯ÖÁÊ×ÐÐ
+
+    Do
+        If FindOrReplace("¨d*¨g", , True) Then
+            changeVec
+        Else
+            notend = False
+        End If
+        DoEvents
+    Loop While notend
+    Selection.HomeKey unit:=wdStory
+    FindOrReplace "¨d", "", False, , 2
+    Selection.HomeKey unit:=wdStory
+    FindOrReplace "¨g", "", False, , 2
+End Function
+
+Function FindOrReplace(fs As String, Optional rs As String = "", Optional TongPeiFu As Boolean = False, Optional FanWei As Integer = wdFindStop, Optional TiHuanShu As Integer = wdReplaceNone) As Boolean
+'È«²¿Ìæ»»ÃüÁî£¬ÎÞÍ¨Åä·û
+'wdFindAsk   2   'wdFindContinue  1  'wdFindStop  0
+'wdReplaceNone  0   'wdReplaceOne   1   'wdReplaceAll   2
+'
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    FindOrReplace = Selection.Find.Execute(fs, False, False, TongPeiFu, False, False, True, FanWei, False, rs, TiHuanShu, False, False, False, False)
 End Function
