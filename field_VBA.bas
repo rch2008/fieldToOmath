@@ -64,7 +64,7 @@ Function typeCMD(str As String)
     Selection.OMaths.Add Range:=Selection.Range
     Selection.TypeText Text:=str 'cmd(i)
     Selection.OMaths.BuildUp
-    Selection.MoveRight unit:=wdCharacter, count:=1
+    Selection.MoveRight Unit:=wdCharacter, count:=1
 End Function
 
 
@@ -612,7 +612,7 @@ Function allChangeToVec()
 '
     Dim notend As Boolean
     notend = True
-    Selection.HomeKey unit:=wdStory
+    Selection.HomeKey Unit:=wdStory
     '移动至首行
 
     Do
@@ -623,9 +623,9 @@ Function allChangeToVec()
         End If
         DoEvents
     Loop While notend
-    Selection.HomeKey unit:=wdStory
+    Selection.HomeKey Unit:=wdStory
     FindOrReplace "╠", "", False, , 2
-    Selection.HomeKey unit:=wdStory
+    Selection.HomeKey Unit:=wdStory
     FindOrReplace "╣", "", False, , 2
 End Function
 
@@ -638,3 +638,38 @@ Function FindOrReplace(fs As String, Optional rs As String = "", Optional TongPe
     Selection.Find.Replacement.ClearFormatting
     FindOrReplace = Selection.Find.Execute(fs, False, False, TongPeiFu, False, False, True, FanWei, False, rs, TiHuanShu, False, False, False, False)
 End Function
+
+
+Function omathSum()
+'
+' 宏1 插入 SUM
+'
+'
+    Selection.OMaths.Add Selection.Range
+    With Selection.OMaths(1).Functions.Add(Selection.Range, _
+        wdOMathFunctionNary)
+        .Nary.Char = 8721
+        .Nary.Grow = False
+        .Nary.SubSupLim = False
+        .Nary.HideSub = False
+        .Nary.HideSup = False
+        .Nary.Grow = True
+        .Nary.E.Range.Text = "test"
+        .Nary.Sub.Range.Text = "do"
+        .Nary.Sup.Range.Text = "up"
+    End With
+End Function
+
+Function omathMatrix()
+'
+' 宏1 宏
+'
+'
+    Selection.OMaths.Add Range:=Selection.Range
+    With Selection.OMaths(1).Functions.Add(Selection.Range, wdOMathFunctionMat, 6, 2).mat
+        .PlcHoldHidden = False
+        .Cell(1, 1).Range.Text = "a"
+        .Cell(1, 2).Range.Text = "b"
+    End With
+End Function
+
