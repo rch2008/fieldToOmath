@@ -354,7 +354,7 @@ Function cmdF(ByRef cmd As String, ByRef index As Long) As Boolean
             End If
         End If
     Loop
-    cmd = cmd + "(" + num + ")/(" + den + ")"
+    cmd = "¡¼(" + num + ")/(" + den + ")¡½"
     cmdF = True
 End Function
 
@@ -488,6 +488,8 @@ Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
     Dim cmdFlag As Integer
     Dim ind As String
     Dim rad As String
+    Dim count As Integer
+    
     cmdFlag = 0
     
     cmd = ""
@@ -505,25 +507,40 @@ Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
         If cmdFlag = 0 Then
             If str = "(" Then
                 cmdFlag = 2
-            Else
-                cmdFlag = 1
             End If
-        ElseIf cmdFlag = 1 Then
         ElseIf cmdFlag = 2 Then
             If str <> "," Then
-                ind = ind + str
+                If str = ")" Then
+                    rad = ind
+                    ind = ""
+                    cmdFlag = 5
+                Else
+                    ind = ind + str
+                End If
             ElseIf str = "," Then
                 cmdFlag = 4
             End If
         ElseIf cmdFlag = 4 Then
-            If str <> ")" Then
+            If str = "(" Then
+                count = count + 1
                 rad = rad + str
             ElseIf str = ")" Then
-                cmdFlag = 5
+                If count > 0 Then
+                    rad = rad + str
+                    count = count - 1
+                Else
+                    cmdFlag = 5
+                End If
+            ElseIf str = "\(" Then
+                rad = rad + "("
+            ElseIf str = "\)" Then
+                rad = rad + ")"
+            Else
+                rad = rad + str
             End If
         End If
     Loop
-    cmd = cmd + "¡¼¡Ì(" + ind + "&" + rad + ")¡½"
+    cmd = cmd + "¡Ì(" + ind + "&" + rad + ")"
     cmdR = True
 End Function
 
