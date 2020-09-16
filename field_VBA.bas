@@ -478,7 +478,7 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
         ElseIf mat(1) = "¡ú" Then
             cmd = "¨d" + mat(0) + "¨g"
         ElseIf (Mid(mat(0), 1, 1) = "_" And Mid(mat(1), 1, 1) = "^") Or (Mid(mat(0), 1, 1) = "^" And Mid(mat(1), 1, 1) = "_") Then
-            cmd = mat(0) + mat(1)
+            cmd = Left(mat(0), Len(mat(0)) - 1) + mat(1)
         'ElseIf Mid(mat(0), 2, 1) = "^" And Mid(mat(1), 2, 1) = "_" Then
         '    cmd = "¡¼" + Mid(mat(0), 2, Len(mat(0)) - 2) + Mid(mat(1), 2, Len(mat(1)) - 2) + "¡½"
         Else
@@ -612,7 +612,7 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
     If scr = "¡ú" Then
         cmd = scr
     Else
-        cmd = cmd + "(" + scr + ")"
+        cmd = cmd + "(" + scr + ") "
     End If
     cmdS = True
 End Function
