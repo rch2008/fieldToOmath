@@ -136,7 +136,13 @@ Function exeCMD(ByRef str As String, ByRef index As Long) As Boolean
             End If
         End If
     Else            '文本，（括号，纯文本，逗号）
-        str = cmd
+        If cmd = "(" Then
+            str = "\("
+        ElseIf cmd = ")" Then
+            str = "\)"
+        Else
+            str = cmd
+        End If
         exeCMD = True
     End If
 End Function
@@ -606,7 +612,7 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
     If scr = "→" Then
         cmd = scr
     Else
-        cmd = cmd + "(" + scr + ") "
+        cmd = cmd + "(" + scr + ")"
     End If
     cmdS = True
 End Function
@@ -687,7 +693,7 @@ Function omathMatrix()
         .PlcHoldHidden = False
         .Cell(1, 1).Range.Text = "a"
         .Cell(1, 2).Range.Text = "b"
-        .Cell(2,1).Range.OMaths.Add(.Cell(2,1).Range).
+        .Cell(2, 1).Range.OMaths.Add (.Cell(2, 1).Range)
     End With
 End Function
 
