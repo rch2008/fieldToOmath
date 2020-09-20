@@ -1,6 +1,22 @@
 Attribute VB_Name = "field_VBA"
 Private mMatchs As Object
-
+Private Declare Function MultiByteToWideChar Lib "kernel32" ( _
+    ByVal CodePage As Long, _
+    ByVal dwFlags As Long, _
+    ByVal lpMultiByteStr As Long, _
+    ByVal cchMultiByte As Long, _
+    ByVal lpWideCharStr As Long, _
+    ByVal cchWideChar As Long) As Long
+Private Declare Function WideCharToMultiByte Lib "kernel32" ( _
+    ByVal CodePage As Long, _
+    ByVal dwFlags As Long, _
+    ByVal lpWideCharStr As Long, _
+    ByVal cchWideChar As Long, _
+    ByVal lpMultiByteStr As Long, _
+    ByVal cbMultiByte As Long, _
+    ByVal lpDefaultChar As Long, _
+    ByVal lpUsedDefaultChar As Long) As Long
+Private Const CP_UTF8 = 65001
 Sub fieldToOmath()
     Dim str As String
     Dim re As Object
@@ -42,7 +58,7 @@ Sub fieldToOmath()
         End If
 nextField:
     Next
-    allChangeToVec
+    'allChangeToVec
 End Sub
 
 Function getCMD(ByVal index As Long, ByRef mFlag As Boolean) As String
@@ -130,7 +146,7 @@ Function exeCMD(ByRef str As String, ByRef index As Long) As Boolean
             End If
         ElseIf UCase(cmd) = "\X" Then
             cmdFlag = 0
-            If cmdF(cmd, index) Then
+            If cmdX(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
@@ -180,20 +196,8 @@ Function cmdA(ByRef cmd As String, ByRef index As Long) As Boolean
                 End If
             End If
         ElseIf cmdFlag = 2 Then
-            If str = "(" Then
-                count = count + 1
-                scr = scr + str
-            ElseIf str = ")" Then
-                If count > 0 Then
-                    scr = scr + str
-                    count = count - 1
-                Else
-                    cmdFlag = 5
-                End If
-            ElseIf str = "\(" Then
-                scr = scr + "("
-            ElseIf str = "\)" Then
-                scr = scr + ")"
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
             ElseIf str = "\," Then
                 scr = scr + ","
             ElseIf str = "," Then
@@ -291,20 +295,8 @@ Function cmdB(ByRef cmd As String, ByRef index As Long) As Boolean
                 End If
             End If
         ElseIf cmdFlag = 2 Then
-            If str = "(" Then
-                count = count + 1
-                scr = scr + str
-            ElseIf str = ")" Then
-                If count > 0 Then
-                    scr = scr + str
-                    count = count - 1
-                Else
-                    cmdFlag = 5
-                End If
-            ElseIf str = "\(" Then
-                scr = scr + "("
-            ElseIf str = "\)" Then
-                scr = scr + ")"
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
             Else
                 scr = scr + str
             End If
@@ -325,6 +317,7 @@ Function cmdF(ByRef cmd As String, ByRef index As Long) As Boolean
     Dim cmdFlag As Integer
     Dim num As String
     Dim den As String
+    Dim count As Integer
     cmdFlag = 0
     'i = j
     cmd = ""
@@ -342,21 +335,20 @@ Function cmdF(ByRef cmd As String, ByRef index As Long) As Boolean
         If cmdFlag = 0 Then
             If str = "(" Then
                 cmdFlag = 2
-            Else
-                cmdFlag = 1
             End If
-        ElseIf cmdFlag = 1 Then
         ElseIf cmdFlag = 2 Then
-            If str <> "," Then
-                num = num + str
+            If testBrace(str, count, cmdFlag, num) Then
+            'brace
             ElseIf str = "," Then
                 cmdFlag = 4
+            Else                        'str <> "," Then
+                num = num + str
             End If
         ElseIf cmdFlag = 4 Then
-            If str <> ")" Then
+            If testBrace(str, count, cmdFlag, den) Then
+            'brace
+            Else                        'str <> ")" Then
                 den = den + str
-            ElseIf str = ")" Then
-                cmdFlag = 5
             End If
         End If
     Loop
@@ -394,20 +386,8 @@ Function cmdL(ByRef cmd As String, ByRef index As Long) As Boolean
                 cmdFlag = 2
             End If
         ElseIf cmdFlag = 2 Then
-            If str = "(" Then
-                count = count + 1
-                scr = scr + str
-            ElseIf str = ")" Then
-                If count > 0 Then
-                    scr = scr + str
-                    count = count - 1
-                Else
-                    cmdFlag = 5
-                End If
-            ElseIf str = "\(" Then
-                scr = scr + "("
-            ElseIf str = "\)" Then
-                scr = scr + ")"
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
             ElseIf str = "\," Then
                 scr = scr + ","
             Else
@@ -447,20 +427,8 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
                 cmdFlag = 2
             End If
         ElseIf cmdFlag = 2 Then
-            If str = "(" Then
-                count = count + 1
-                scr = scr + str
-            ElseIf str = ")" Then
-                If count > 0 Then
-                    scr = scr + str
-                    count = count - 1
-                Else
-                    cmdFlag = 5
-                End If
-            ElseIf str = "\(" Then
-                scr = scr + "("
-            ElseIf str = "\)" Then
-                scr = scr + ")"
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
             ElseIf str = "\," Then
                 scr = scr + ","
             ElseIf str = "," Then
@@ -474,9 +442,9 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
     If UBound(mat) = 1 Then
         cmdO = True
         If mat(0) = "→" Then
-            cmd = "╠" + mat(1) + "╣"
+            cmd = "(" + mat(1) + ")" + vec
         ElseIf mat(1) = "→" Then
-            cmd = "╠" + mat(0) + "╣"
+            cmd = "(" + mat(0) + ")" + vec
         ElseIf (Mid(mat(0), 1, 1) = "_" And Mid(mat(1), 1, 1) = "^") Or (Mid(mat(0), 1, 1) = "^" And Mid(mat(1), 1, 1) = "_") Then
             cmd = Left(mat(0), Len(mat(0)) - 1) + mat(1)
         'ElseIf Mid(mat(0), 2, 1) = "^" And Mid(mat(1), 2, 1) = "_" Then
@@ -485,6 +453,17 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
             cmdO = False
         End If
     End If
+End Function
+
+Function vec() As String
+    '\vec
+    Dim bUTF8(4) As Byte
+    bUTF8(0) = 194
+    bUTF8(1) = 160
+    bUTF8(2) = 226
+    bUTF8(3) = 131
+    bUTF8(4) = 151
+    vec = UTF8_Decode(bUTF8)
 End Function
 
 Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
@@ -515,32 +494,16 @@ Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
                 cmdFlag = 2
             End If
         ElseIf cmdFlag = 2 Then
-            If str <> "," Then
-                If str = ")" Then
-                    rad = ind
-                    ind = ""
-                    cmdFlag = 5
-                Else
-                    ind = ind + str
-                End If
+            If testBrace(str, count, cmdFlag, ind) Then
+            'brace
             ElseIf str = "," Then
                 cmdFlag = 4
+            Else
+                ind = ind + str
             End If
         ElseIf cmdFlag = 4 Then
-            If str = "(" Then
-                count = count + 1
-                rad = rad + str
-            ElseIf str = ")" Then
-                If count > 0 Then
-                    rad = rad + str
-                    count = count - 1
-                Else
-                    cmdFlag = 5
-                End If
-            ElseIf str = "\(" Then
-                rad = rad + "("
-            ElseIf str = "\)" Then
-                rad = rad + ")"
+            If testBrace(str, count, cmdFlag, rad) Then
+            'brace
             Else
                 rad = rad + str
             End If
@@ -582,28 +545,10 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
                 ElseIf Left(str, 3) = "\DO" Then
                     cmd = "_"
                 End If
-                'cmdFlag = 1
             End If
-        'ElseIf cmdFlag = 1 Then
-        '    If str = "(" Then
-        '        cmdFlag = 2
-        '    Else
-        '    End If
         ElseIf cmdFlag = 2 Then
-            If str = "(" Then
-                count = count + 1
-                scr = scr + str
-            ElseIf str = ")" Then
-                If count > 0 Then
-                    scr = scr + str
-                    count = count - 1
-                Else
-                    cmdFlag = 5
-                End If
-            ElseIf str = "\(" Then
-                scr = scr + "("
-            ElseIf str = "\)" Then
-                scr = scr + ")"
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
             Else
                 scr = scr + str
             End If
@@ -618,38 +563,60 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
 End Function
 
 Function cmdX(ByRef cmd As String, ByRef index As Long) As Boolean
+    Dim str As String
+    Dim mFlag As Boolean
+    Dim cmdFlag As Integer
+    Dim scr As String
+    Dim count As Integer
     
-End Function
-
-Function changeVec()
-    Dim objRange As Range
-    Dim objEq As OMath
-    Dim objOMathFunction As OMathFunction
-     
-    Set objRange = Selection.Range
-    Set objEq = objRange.OMaths(1)
-    Set objOMathFunction = objEq.Functions.Add(objRange, wdOMathFunctionAcc)
-    objOMathFunction.Acc.Char = 8407
-End Function
-Function allChangeToVec()
-'
-    Dim notend As Boolean
-    notend = True
-    Selection.HomeKey Unit:=wdStory
-    '移动至首行
-
-    Do
-        If FindOrReplace("╠*╣", , True) Then
-            changeVec
-        Else
-            notend = False
+    cmdX = True
+    cmdFlag = 0
+    count = 0
+    cmd = ""
+    Do While cmdFlag <> 5
+        index = index + 1
+        str = getCMD(index, mFlag)
+        If mFlag = True Then
+        '''''''''参数为主命令，先执行
+            If exeCMD(str, index) = False Then
+                cmdX = False
+                Exit Function
+            End If
         End If
-        DoEvents
-    Loop While notend
-    Selection.HomeKey Unit:=wdStory
-    FindOrReplace "╠", "", False, , 2
-    Selection.HomeKey Unit:=wdStory
-    FindOrReplace "╣", "", False, , 2
+        
+        If cmdFlag = 0 Then
+            If str = "(" Then
+                cmdFlag = 2
+            Else
+                str = UCase(str)
+                If Left(str, 3) = "\TO" Then
+                    cmd = bar()
+                Else
+                    cmdX = False
+                    Exit Function
+                'ElseIf Left(str, 3) = "\DO" Then
+                '    cmd = "_"
+                End If
+            End If
+        ElseIf cmdFlag = 2 Then
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
+            Else
+                scr = scr + str
+            End If
+        End If
+    Loop
+    cmd = "(" + scr + ")" + cmd
+End Function
+
+Function bar() As String
+    'bar 194,160,204,133
+    Dim bUTF8(3) As Byte
+    bUTF8(0) = 194
+    bUTF8(1) = 160
+    bUTF8(2) = 204
+    bUTF8(3) = 133
+    bar = UTF8_Decode(bUTF8)
 End Function
 
 Function FindOrReplace(fs As String, Optional rs As String = "", Optional TongPeiFu As Boolean = False, Optional FanWei As Integer = wdFindStop, Optional TiHuanShu As Integer = wdReplaceNone) As Boolean
@@ -662,6 +629,65 @@ Function FindOrReplace(fs As String, Optional rs As String = "", Optional TongPe
     FindOrReplace = Selection.Find.Execute(fs, False, False, TongPeiFu, False, False, True, FanWei, False, rs, TiHuanShu, False, False, False, False)
 End Function
 
+'Decode the utf-8 text to Chinese
+Public Function UTF8_Decode(bUTF8() As Byte) As String
+    Dim lRet As Long
+    Dim lLen As Long
+    Dim lBufferSize As Long
+    Dim sBuffer As String
+    lLen = UBound(bUTF8) + 1
+    If lLen = 0 Then Exit Function
+    lBufferSize = MultiByteToWideChar(CP_UTF8, 0, VarPtr(bUTF8(0)), lLen, 0, 0)
+    sBuffer = String$(lBufferSize, Chr(0))
+    lRet = MultiByteToWideChar(CP_UTF8, 0, VarPtr(bUTF8(0)), lLen, StrPtr(sBuffer), lBufferSize)
+    UTF8_Decode = sBuffer
+End Function
+
+Public Function Utf8BytesFromString(strInput As String) As Byte()
+    Dim nBytes As Long
+    Dim abBuffer() As Byte
+    ' Catch empty or null input string
+    Utf8BytesFromString = vbNullString
+    If Len(strInput) < 1 Then Exit Function
+    ' Get length in bytes *including* terminating null
+    nBytes = WideCharToMultiByte(CP_UTF8, 0&, ByVal StrPtr(strInput), -1, 0&, 0&, 0&, 0&)
+    ' We don't want the terminating null in our byte array, so ask for `nBytes-1` bytes
+    ReDim abBuffer(nBytes - 2)  ' NB ReDim with one less byte than you need
+    nBytes = WideCharToMultiByte(CP_UTF8, 0&, ByVal StrPtr(strInput), -1, ByVal VarPtr(abBuffer(0)), nBytes - 1, 0&, 0&)
+    Utf8BytesFromString = abBuffer
+End Function
+
+Function testBrace(ByVal str As String, ByRef count As Integer, ByRef cmdFlag As Integer, ByRef scr As String) As Boolean
+    testBrace = True
+    If str = "(" Then
+        count = count + 1
+        scr = scr + "\("
+    ElseIf str = ")" Then
+        If count > 0 Then
+            scr = scr + "\)"
+            count = count - 1
+        Else
+            cmdFlag = 5
+        End If
+    ElseIf str = "\(" Then  '圆括号
+        scr = scr + "\("
+    ElseIf str = "\)" Then
+        scr = scr + "\)"
+    ElseIf str = "[" Then   '方括号
+        scr = scr + "\["
+    ElseIf str = "]" Then
+        scr = scr + "\]"
+    ElseIf str = "{" Then   '花括号
+        scr = scr + "\{"
+    ElseIf str = "}" Then
+        scr = scr + "\}"
+    ElseIf str = "|" Then   '竖线
+        scr = scr + "\|"
+    Else
+        testBrace = False
+    End If
+        
+End Function
 
 Function omathSum()
 '
