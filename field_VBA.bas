@@ -91,61 +91,51 @@ Function exeCMD(ByRef str As String, ByRef index As Long) As Boolean
     cmd = CStr(mMatchs(index).Value)
     If isMcmd(cmd) Then
         If UCase(cmd) = "\A" Then
-            cmdFlag = 0
             If cmdA(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\B" Then
-            cmdFlag = 0
             If cmdB(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\D" Then
-            cmdFlag = 0
             If cmdD(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\F" Then
-            cmdFlag = 0
             If cmdF(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\I" Then
-            cmdFlag = 0
             If cmdI(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\L" Then
-            cmdFlag = 0
             If cmdL(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\O" Then
-            cmdFlag = 0
             If cmdO(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\R" Then
-            cmdFlag = 0
             If cmdR(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\S" Then
-            cmdFlag = 0
             If cmdS(cmd, index) Then
                 str = cmd
                 exeCMD = True
             End If
         ElseIf UCase(cmd) = "\X" Then
-            cmdFlag = 0
             If cmdX(cmd, index) Then
                 str = cmd
                 exeCMD = True
@@ -689,37 +679,29 @@ Function testBrace(ByVal str As String, ByRef count As Integer, ByRef cmdFlag As
         
 End Function
 
-Function omathSum()
-'
-' ºê1 ²åÈë SUM
-'
-'
-    Selection.OMaths.Add Selection.Range
-    With Selection.OMaths(1).Functions.Add(Selection.Range, _
-        wdOMathFunctionNary)
-        .Nary.Char = 8721
-        .Nary.Grow = False
-        .Nary.SubSupLim = False
-        .Nary.HideSub = False
-        .Nary.HideSup = False
-        .Nary.Grow = True
-        .Nary.E.Range.Text = "test"
-        .Nary.Sub.Range.Text = "do"
-        .Nary.Sup.Range.Text = "up"
-    End With
+Function fromHexStrToUTF8Str(ByVal hexStr As String) As String
+    '\vec
+    Dim bUTF8() As Byte
+    Dim lenHexStr As Long
+    Dim n As Long
+    Dim j As Long, k As Long
+    lenHexStr = Len(hexStr)
+    If lenHexStr Mod 2 = 0 Then
+        n = Len(hexStr) / 2 - 1
+        ReDim bUTF8(n)
+    Else
+        MsgBox "16½øÖÆ×Ö·û´®³¤¶È´íÎó£¡"
+        Exit Function
+    End If
+    j = 0
+    For i = 0 To Len(hexStr) - 1 Step 2
+        bUTF8(j) = Val("&H" & Mid(hexStr, i + 1, 2))
+        j = j + 1
+    Next
+    fromHexStrToUTF8Str = UTF8_Decode(bUTF8)
 End Function
 
-Function omathMatrix()
-'
-' ºê1 ºê
-'
-'
-    Selection.OMaths.Add Range:=Selection.Range
-    With Selection.OMaths(1).Functions.Add(Selection.Range, wdOMathFunctionMat, 6, 2).mat
-        .PlcHoldHidden = False
-        .Cell(1, 1).Range.Text = "a"
-        .Cell(1, 2).Range.Text = "b"
-        .Cell(2, 1).Range.OMaths.Add (.Cell(2, 1).Range)
-    End With
-End Function
+Sub t()
+Selection.TypeText fromHexStrToUTF8Str("e29692") '("c2a0e28397")
+End Sub
 
