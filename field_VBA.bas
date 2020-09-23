@@ -17,6 +17,14 @@ Private Declare Function WideCharToMultiByte Lib "kernel32" ( _
     ByVal lpDefaultChar As Long, _
     ByVal lpUsedDefaultChar As Long) As Long
 Private Const CP_UTF8 = 65001
+Private vec As String
+Private bar As String
+
+Function init()
+    vec = fromHexStrToUTF8Str("c2a0e28397")     'vec
+    bar = fromHexStrToUTF8Str("c2a0cc85")     'bar 194,160,204,133
+
+End Function
 Sub fieldToOmath()
     Dim str As String
     Dim re As Object
@@ -33,6 +41,7 @@ Sub fieldToOmath()
     strXL = "[¦Õ¦Ð]"                                'Ï£À°
     strBrace = "\(|\)|\{|\}|\[|\]|\|"                'À¨ºÅ
     strFH = ","                                     '¶ººÅ
+    init
     
     Set re = New RegExp
     re.Global = True
@@ -445,16 +454,6 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
     End If
 End Function
 
-Function vec() As String
-    '\vec
-    Dim bUTF8(4) As Byte
-    bUTF8(0) = 194
-    bUTF8(1) = 160
-    bUTF8(2) = 226
-    bUTF8(3) = 131
-    bUTF8(4) = 151
-    vec = UTF8_Decode(bUTF8)
-End Function
 
 Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
     'Dim index As Long
@@ -499,6 +498,10 @@ Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
             End If
         End If
     Loop
+    If rad = "" Then
+        rad = ind
+        ind = ""
+    End If
     cmd = cmd + "¡Ì(" + ind + "&" + rad + ")"
     cmdR = True
 End Function
@@ -580,7 +583,7 @@ Function cmdX(ByRef cmd As String, ByRef index As Long) As Boolean
             Else
                 str = UCase(str)
                 If Left(str, 3) = "\TO" Then
-                    cmd = bar()
+                    cmd = bar
                 Else
                     cmdX = False
                     Exit Function
@@ -597,16 +600,6 @@ Function cmdX(ByRef cmd As String, ByRef index As Long) As Boolean
         End If
     Loop
     cmd = "(" + scr + ")" + cmd
-End Function
-
-Function bar() As String
-    'bar 194,160,204,133
-    Dim bUTF8(3) As Byte
-    bUTF8(0) = 194
-    bUTF8(1) = 160
-    bUTF8(2) = 204
-    bUTF8(3) = 133
-    bar = UTF8_Decode(bUTF8)
 End Function
 
 Function FindOrReplace(fs As String, Optional rs As String = "", Optional TongPeiFu As Boolean = False, Optional FanWei As Integer = wdFindStop, Optional TiHuanShu As Integer = wdReplaceNone) As Boolean
