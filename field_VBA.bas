@@ -21,7 +21,7 @@ Private vec As String
 Private bar As String
 
 Function init()
-    vec = fromHexStrToUTF8Str("c2a0e28397")     'vec
+    vec = fromHexStrToUTF8Str("c2a0e28397")   'vec
     bar = fromHexStrToUTF8Str("c2a0cc85")     'bar 194,160,204,133
 
 End Function
@@ -29,28 +29,52 @@ Sub fieldToOmath()
     Dim str As String
     Dim re As Object
     'Dim mMatch As Object, mmatchs As Object
-    Dim field As field
+    Dim myField As field
     Dim finalCMD As String
     Dim strTemp As String
     Dim index As Long
+    Dim iField As Long, nNextField As Long
     Dim strCmd As String, strCmdB As String, strText As String, strXL As String, strBrace As String, strFH As String
     
     strCmd = "\\([A-Za-z0-9])+"                     'ÃüÁî
-    strCmdB = "\\[\(\)\{\}\[\]\|\*\,\|]"            'À¨ºÅÃüÁî
+    strCmdB = "\\[\(\)\{\}\[\]\|\*\,\| ]"            'À¨ºÅÃüÁî
     strText = "[^\s\\ \(\)\{\}\[\]\|,]+"            '´¿ÎÄ±¾
     strXL = "[¦Õ¦Ð]"                                'Ï£À°
     strBrace = "\(|\)|\{|\}|\[|\]|\|"                'À¨ºÅ
     strFH = ","                                     '¶ººÅ
     init
     
+    ActiveWindow.View.ShowFieldCodes = True
+
     Set re = New RegExp
     re.Global = True
+    re.IgnoreCase = True
     cmdFlag = 3        '0 Ö÷ÃüÁî 1 ¸¨ÃüÁî  2 ¿ª×é 3ÎÄ±¾ 4 ","·Ö¸î 5 ¹Ø×é
-    For Each field In ActiveDocument.Fields
+    nNextField = 0
+    i = 0
+    For Each myField In ActiveDocument.Fields
+        If nNextField <> 0 Then
+            nNextField = nNextField - 1
+            GoTo nextField
+        End If
+        
         finalCMD = ""
-        str = Trim(field.Code)
+        str = Trim(myField.Code)
         If UCase(Left(str, 2)) = "EQ" Then
-            str = Mid(str, 4)
+            'EQÓò¶àÖØÇ¶Ì×
+            re.Pattern = "EQ |EMBED "
+            Set mMatchs = re.Execute(str)
+            If mMatchs.count > 1 Then
+                nNextField = mMatchs.count - 1
+                GoTo nextField
+            End If
+            'EQÓòÖÐ°üº¬mathtype¹«Ê½£¬Ìø¹ý
+            If InStr(1, UCase(str), "EQUATION.DSMT") > 0 Then
+                GoTo nextField
+            End If
+            myField.Select
+            replaceUDinField
+            str = Mid(Trim(myField.Code), 4)
             ''''''''''''''ÃüÁî'''''|'''À¨ºÅÃüÁî''''|''''´¿ÎÄ±¾'''''|''''Ï£À°'''''|''''''À¨ºÅ''''''|''''¶ººÅ
             re.Pattern = strCmd + "|" + strCmdB + "|" + strText + "|" + strXL + "|" + strBrace + "|" + strFH
             Set mMatchs = re.Execute(str)
@@ -61,13 +85,16 @@ Sub fieldToOmath()
                     GoTo nextField
                 End If
             Next
-            field.Select
-            field.Delete
+            myField.Delete
+            finalCMD = Replace(finalCMD, ") ^(", "")
+            finalCMD = Replace(finalCMD, ") _(", "")
+            
             typeCMD finalCMD
         End If
 nextField:
+        DoEvents
     Next
-    'allChangeToVec
+    MsgBox "field2omathÍê³É"
 End Sub
 
 Function getCMD(ByVal index As Long, ByRef mFlag As Boolean) As String
@@ -155,6 +182,20 @@ Function exeCMD(ByRef str As String, ByRef index As Long) As Boolean
             str = "\("
         ElseIf cmd = ")" Then
             str = "\)"
+        ElseIf cmd = "\(" Then  'Ô²À¨ºÅ
+           str = "\("
+        ElseIf cmd = "\)" Then
+           str = "\)"
+        ElseIf cmd = "[" Then   '·½À¨ºÅ
+           str = "\["
+        ElseIf cmd = "]" Then
+           str = "\]"
+        ElseIf cmd = "{" Then   '»¨À¨ºÅ
+           str = "\{"
+        ElseIf cmd = "}" Then
+           str = "\}"
+        ElseIf cmd = "|" Then   'ÊúÏß
+           str = "\|"
         Else
             str = cmd
         End If
@@ -207,26 +248,30 @@ Function cmdA(ByRef cmd As String, ByRef index As Long) As Boolean
         End If
     Loop
     mat = Split(scr, Chr(0))
-    For i = 0 To UBound(mat)
-        cmd = cmd + mat(i)
-        If (i + 1) Mod co = 0 Then
-            cmd = cmd + "@"
-        Else
-            cmd = cmd + "&"
-        End If
-    Next
-    j = i Mod co
-    If j = 0 Then
-        cmd = Left(cmd, Len(cmd) - 1)
+    If co = 1 And UBound(mat) = 0 Then
+        cmd = scr
     Else
-        i = 0
-        j = co - j - 1
-        Do While i < j
-            cmd = cmd + "&"
-            i = i + 1
-        Loop
+        For i = 0 To UBound(mat)
+            cmd = cmd + mat(i)
+            If (i + 1) Mod co = 0 Then
+                cmd = cmd + "@"
+            Else
+                cmd = cmd + "&"
+            End If
+        Next
+        j = i Mod co
+        If j = 0 Then
+            cmd = Left(cmd, Len(cmd) - 1)
+        Else
+            i = 0
+            j = co - j - 1
+            Do While i < j
+                cmd = cmd + "&"
+                i = i + 1
+            Loop
+        End If
+        cmd = "¡ö(" + cmd + ")"
     End If
-    cmd = "¡ö(" + cmd + ")"
     cmdA = True
 End Function
 
@@ -258,11 +303,30 @@ Function cmdB(ByRef cmd As String, ByRef index As Long) As Boolean
                 If lr(0) = "" And lr(1) = "" Then
                     lr(0) = "("
                     lr(1) = ")"
-                Else
+                ElseIf lr(0) = "" Or lr(1) = "" Then
                     If lr(0) = "" And lr(1) <> "" Then
                         lr(0) = "©À"
                     ElseIf lr(0) <> "" And lr(1) = "" Then
                         lr(1) = "©È"
+                    End If
+                ElseIf Trim(lr(0)) = "" Or Trim(lr(1)) = "" Then
+                    If Trim(lr(0)) = "" And Trim(lr(1)) <> "" Then
+                        If lr(1) = "|" Then
+                            lr(0) = ""
+                            lr(1) = "\|"
+                        Else
+                            lr(0) = "©À"
+                        End If
+                    ElseIf Trim(lr(0)) <> "" And Trim(lr(1)) = "" Then
+                        If lr(0) = "|" Then
+                            lr(0) = "\|"
+                            lr(1) = ""
+                        Else
+                            lr(1) = " ©È"
+                        End If
+                    ElseIf Trim(lr(0)) = "" And Trim(lr(1)) = "" Then
+                        lr(0) = ""
+                        lr(1) = ""
                     End If
                 End If
                 cmdFlag = 2
@@ -284,6 +348,9 @@ Function cmdB(ByRef cmd As String, ByRef index As Long) As Boolean
                         ElseIf Mid(str, 2) = "{" Then
                             lr(0) = "{"
                             lr(1) = "}"
+                        ElseIf Mid(str, 2) = "|" Then
+                            lr(0) = "|"
+                            lr(1) = "|"
                         Else
                             lr(0) = Mid(str, 2)
                             lr(1) = Mid(str, 2)
@@ -340,13 +407,13 @@ Function cmdF(ByRef cmd As String, ByRef index As Long) As Boolean
             'brace
             ElseIf str = "," Then
                 cmdFlag = 4
-            Else                        'str <> "," Then
+            Else
                 num = num + str
             End If
         ElseIf cmdFlag = 4 Then
             If testBrace(str, count, cmdFlag, den) Then
             'brace
-            Else                        'str <> ")" Then
+            Else
                 den = den + str
             End If
         End If
@@ -446,17 +513,17 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
             cmd = "(" + mat(0) + ")" + vec
         ElseIf (Mid(mat(0), 1, 1) = "_" And Mid(mat(1), 1, 1) = "^") Or (Mid(mat(0), 1, 1) = "^" And Mid(mat(1), 1, 1) = "_") Then
             cmd = Left(mat(0), Len(mat(0)) - 1) + mat(1)
-        'ElseIf Mid(mat(0), 2, 1) = "^" And Mid(mat(1), 2, 1) = "_" Then
-        '    cmd = "¡¼" + Mid(mat(0), 2, Len(mat(0)) - 2) + Mid(mat(1), 2, Len(mat(1)) - 2) + "¡½"
         Else
             cmdO = False
         End If
+    ElseIf UBound(mat) = 0 Then
+        cmdO = True
+        cmd = scr
     End If
 End Function
 
 
 Function cmdR(ByRef cmd As String, ByRef index As Long) As Boolean
-    'Dim index As Long
     Dim str As String
     Dim mFlag As Boolean
     Dim cmdFlag As Integer
@@ -513,7 +580,7 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
     Dim cmdFlag As Integer
     Dim scr As String
     Dim count As Integer
-    
+    Dim temp() As String
     cmdFlag = 0
     count = 0
     cmd = ""
@@ -542,6 +609,8 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
         ElseIf cmdFlag = 2 Then
             If testBrace(str, count, cmdFlag, scr) Then
             'brace
+            ElseIf str = "," Then
+                scr = scr + Chr(0)
             Else
                 scr = scr + str
             End If
@@ -550,7 +619,14 @@ Function cmdS(ByRef cmd As String, ByRef index As Long) As Boolean
     If scr = "¡ú" Then
         cmd = scr
     Else
-        cmd = cmd + "(" + scr + ") "
+        temp = Split(scr, Chr(0))
+        If UBound(temp) = 1 Then
+            cmd = "^" + temp(0) + "_" + temp(1) + " "
+        ElseIf cmd = "" Then
+            cmd = "^" + "(" + scr + ") "
+        Else
+            cmd = cmd + "(" + scr + ") "
+        End If
     End If
     cmdS = True
 End Function
@@ -694,7 +770,49 @@ Function fromHexStrToUTF8Str(ByVal hexStr As String) As String
     fromHexStrToUTF8Str = UTF8_Decode(bUTF8)
 End Function
 
-Sub t()
-Selection.TypeText fromHexStrToUTF8Str("e29692") '("c2a0e28397")
-End Sub
-
+Function replaceUDinField()
+'   ÉÏ±êÌæ»»
+    Selection.Find.ClearFormatting
+    With Selection.Find.Font
+        .Superscript = True
+        .Subscript = False
+    End With
+    Selection.Find.Replacement.ClearFormatting
+    Selection.Find.Replacement.Font.Color = wdColorRed
+    With Selection.Find
+        .Text = "*"
+        .Replacement.Text = "^92S^92UP(^&)"
+        .Forward = True
+        .Wrap = wdFindStop ' wdFindAsk
+        .Format = True
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = False
+        .MatchAllWordForms = False
+        .MatchSoundsLike = False
+        .MatchWildcards = True
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+'   ÏÂ±êÌæ»»
+    Selection.Find.ClearFormatting
+    With Selection.Find.Font
+        .Superscript = False
+        .Subscript = True
+    End With
+    Selection.Find.Replacement.ClearFormatting
+    Selection.Find.Replacement.Font.Color = wdColorRed
+    With Selection.Find
+        .Text = "*"
+        .Replacement.Text = "^92S^92DO(^&)"
+        .Forward = True
+        .Wrap = wdFindStop ' wdFindAsk
+        .Format = True
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = False
+        .MatchAllWordForms = False
+        .MatchSoundsLike = False
+        .MatchWildcards = True
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+End Function
