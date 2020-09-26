@@ -353,7 +353,7 @@ Function cmdB(ByRef cmd As String, ByRef index As Long) As Boolean
                             lr(1) = "|"
                         Else
                             lr(0) = Mid(str, 2)
-                            lr(1) = Mid(str, 2)
+                            lr(1) = lr(0)
                         End If
                     Else
                         lr(i) = Mid(str, 2)
@@ -461,7 +461,7 @@ Function cmdL(ByRef cmd As String, ByRef index As Long) As Boolean
             End If
         End If
     Loop
-    cmd = scr '"¡¼" + scr + "¡½"
+    cmd = scr
     cmdL = True
     
 End Function
@@ -819,3 +819,24 @@ Function replaceUDinField()
     End With
     Selection.Find.Execute Replace:=wdReplaceAll
 End Function
+
+Sub findUTF8Code()
+    Dim s As String
+    Dim t As String
+    Dim bUTF8() As Byte
+    s = Selection.Range.Text
+    
+    bUTF8 = Utf8BytesFromString(s)
+    s = ""
+    For i = 0 To UBound(bUTF8)
+        t = Hex(bUTF8(i))
+        If Len(t) = 1 Then
+            t = "0" + t
+        ElseIf Len(t) = 0 Then
+            t = "00"
+        End If
+        s = s + t
+    Next
+    Debug.Print s
+End Sub
+
