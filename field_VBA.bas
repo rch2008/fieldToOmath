@@ -513,6 +513,9 @@ Function cmdO(ByRef cmd As String, ByRef index As Long) As Boolean
             cmd = "(" + mat(0) + ")" + vec
         ElseIf (Mid(mat(0), 1, 1) = "_" And Mid(mat(1), 1, 1) = "^") Or (Mid(mat(0), 1, 1) = "^" And Mid(mat(1), 1, 1) = "_") Then
             cmd = Left(mat(0), Len(mat(0)) - 1) + mat(1)
+        ElseIf (mat(0) = fromHexStrToUTF8Str("E28792") And mat(1) = "/") Or (mat(0) = "/" And mat(1) = fromHexStrToUTF8Str("E28792")) Then
+                '=>E28792  ¡Ù>E2878F
+            cmd = fromHexStrToUTF8Str("E2878F")
         Else
             cmdO = False
         End If
