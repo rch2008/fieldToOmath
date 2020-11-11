@@ -23,7 +23,8 @@ Private bar As String
 Function init()
     vec = fromHexStrToUTF8Str("c2a0e28397")   'vec
     bar = fromHexStrToUTF8Str("c2a0cc85")     'bar 194,160,204,133
-
+    'of = fromHexStrToUTF8Str("e29692")     '226 150 146    e29692
+    'hat= fromHexStrToUTF8Str("C2A0CC82")
 End Function
 Sub fieldToOmath()
     Dim str As String
@@ -423,7 +424,56 @@ Function cmdF(ByRef cmd As String, ByRef index As Long) As Boolean
 End Function
 
 Function cmdI(ByRef cmd As String, ByRef index As Long) As Boolean
+'\i\su(\S\UP(i)\S\UP(＝)\S\UP(1),\S\DO(5),n)
+    Dim str As String
+    Dim mFlag As Boolean
+    Dim cmdFlag As Integer
+    Dim scr As String
+    Dim mat() As String
+    Dim count As Integer
     
+    cmdFlag = 0
+    count = 0
+    cmd = ""
+    Do While cmdFlag <> 5
+        index = index + 1
+        str = getCMD(index, mFlag)
+        If mFlag = True Then
+        '''''''''参数为主命令，先执行
+            If exeCMD(str, index) = False Then
+                cmdI = False
+                Exit Function
+            End If
+        End If
+        
+        If cmdFlag = 0 Then
+            If str = "(" Then
+                cmdFlag = 2
+            Else
+                str = UCase(str)
+                If Left(str, 3) = "\SU" Then
+                    cmd = "∑"
+                'ElseIf Left(str, 3) = "\DO" Then
+                '    cmd = "_"
+                End If
+            End If
+        ElseIf cmdFlag = 2 Then
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
+            ElseIf str = "\," Then
+                scr = scr + ","
+            ElseIf str = "," Then
+                scr = scr + Chr(0)
+            Else
+                scr = scr + str
+            End If
+        End If
+    Loop
+    mat = Split(scr, Chr(0))
+    If UBound(mat) = 2 Then
+        cmdI = True                                  'of
+        cmd = cmd + Trim(mat(0)) + Trim(mat(1)) + fromHexStrToUTF8Str("e29692") + mat(2)
+    End If
 End Function
 
 Function cmdL(ByRef cmd As String, ByRef index As Long) As Boolean
@@ -839,4 +889,76 @@ Sub findUTF8Code()
     Next
     Debug.Print s
 End Sub
+
+Function cmdOA(ByRef cmd As String, ByRef index As Long) As Boolean
+    Dim str As String
+    Dim mFlag As Boolean
+    Dim cmdFlag As Integer
+    Dim scr As String
+    Dim mat() As String
+    Dim count As Integer
+    
+    cmdFlag = 0
+    count = 0
+    cmd = ""
+    Do While cmdFlag <> 5
+        index = index + 1
+        str = getCMD(index, mFlag)
+        If mFlag = True Then
+        '''''''''参数为主命令，先执行
+            If exeCMD(str, index) = False Then
+                cmdO = False
+                Exit Function
+            End If
+        End If
+        
+        If cmdFlag = 0 Then
+            If str = "(" Then
+                cmdFlag = 2
+            End If
+        ElseIf cmdFlag = 2 Then
+            If testBrace(str, count, cmdFlag, scr) Then
+            'brace
+            ElseIf str = "\," Then
+                scr = scr + ","
+            ElseIf str = "," Then
+                scr = scr + Chr(0)
+            Else
+                scr = scr + str
+            End If
+        End If
+    Loop
+    mat = Split(scr, Chr(0))
+    If UBound(mat) > 1 Then
+        cmdO = True
+        If mat(0) = "∑" Then
+            cmd = "∑" + mat(1) + mat(2) + fromHexStrToUTF8Str("e29692")
+        Else
+            cmdO = False
+        End If
+    ElseIf UBound(mat) = 1 Then
+        cmdO = True
+        If mat(0) = "→" Then
+            cmd = "(" + mat(1) + ")" + vec
+        ElseIf mat(1) = "→" Then
+            cmd = "(" + mat(0) + ")" + vec
+        ElseIf (Mid(mat(0), 1, 1) = "_" And Mid(mat(1), 1, 1) = "^") Or (Mid(mat(0), 1, 1) = "^" And Mid(mat(1), 1, 1) = "_") Then
+            cmd = Left(mat(0), Len(mat(0)) - 1) + mat(1)
+        ElseIf (mat(0) = fromHexStrToUTF8Str("E28792") And mat(1) = "/") Or (mat(0) = "/" And mat(1) = fromHexStrToUTF8Str("E28792")) Then
+                '=>E28792  ≠>E2878F
+            cmd = fromHexStrToUTF8Str("E2878F")
+        ElseIf mat(1) = "^(－) " Then
+            cmd = "(" + mat(0) + ")" + bar
+        ElseIf mat(1) = "^(^(^) ) " Then
+            cmd = "(" + mat(0) + ")" + fromHexStrToUTF8Str("C2A0CC82")
+        Else
+            cmdO = False
+        End If
+    ElseIf UBound(mat) = 0 Then
+        cmdO = True
+        cmd = scr
+    End If
+End Function
+
+
 
