@@ -1,4 +1,5 @@
 Attribute VB_Name = "field_VBA"
+Private preFieldIndex As Long
 Private mMatchs As Object
 Private Declare Function MultiByteToWideChar Lib "kernel32" ( _
     ByVal CodePage As Long, _
@@ -114,9 +115,15 @@ End Function
 
 Function typeCMD(str As String)
     Dim cmd() As String
+    
     Selection.OMaths.Add Range:=Selection.Range
+    If preFieldIndex = Selection.Start Then
+        Selection.MoveLeft Unit:=wdCharacter, count:=1
+    End If
+    Debug.Print preFieldIndex
     Selection.TypeText Text:=str 'cmd(i)
     Selection.OMaths.BuildUp
+    preFieldIndex = Selection.Start
     Selection.MoveRight Unit:=wdCharacter, count:=1
 End Function
 
